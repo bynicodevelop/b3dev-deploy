@@ -1,0 +1,63 @@
+name: Deploiement de notre super application avec Flutter
+
+on:
+  push: 
+    branches: 
+      - main
+
+jobs:
+  deploy:
+    name: Deploy app
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'zulu'
+          java-version: "12.x"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v1
+        with:
+          channel: stable
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.FLUTTER_HOME }}/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: ${{ runner.os }}-pub-
+
+      - name: Clean flutter
+        run: flutter clean
+
+      - name: Import pub dependencies
+        run: flutter pub get
+
+      - name: Create .firebaserc file
+        id: firebaserc
+        uses: timheuer/base64-to-file@v1
+        with:
+          fileName: ".firebaserc"
+          encodedString: ${{ secrets.FIREBASERC }}
+
+      - name: Move .firebaserc into project
+        run: |
+          mv ${{ steps.firebaserc.outputs.filePath }} ./
+
+      - name: 'Build Web App'
+        run: flutter build web
+
+      - name: Deploy to Firebase Hosting
+        uses: w9jds/firebase-action@master
+        with:
+          args: deploy --only hosting
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
