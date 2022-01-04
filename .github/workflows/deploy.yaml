@@ -1,9 +1,13 @@
 name: Deploiement de notre super application avec Flutter
 
+# on:
+#   push: 
+#     branches: 
+#       - main
+
 on:
-  push: 
-    branches: 
-      - main
+  release:
+    types: [published]
 
 jobs:
   test:
